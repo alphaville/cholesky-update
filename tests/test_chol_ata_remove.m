@@ -2,6 +2,28 @@
 % https://gist.github.com/alphaville/4459f416c3d790b43502
 
 
+%% Remove when shuffled
+clear
+m = 10;
+n = 3000;
+A = randn(m,n);
+alpha = [ 1184 2747 2311 783 2970 380 725 1757 640]; % Original set alpha (shuffled)
+
+
+Aa = A(:, alpha);
+L = chol(Aa'*Aa,'lower');
+
+alpha_ = [2747 783 2970 380 1757 640];
+[d_alpha, idx_d_alpha] = setdiff(alpha, alpha_);
+
+idx_remove = idx_d_alpha;
+[L11bar, L31bar, L33bar] = chol_ata_remove_col(L, idx_remove);
+L_updated= [L11bar      zeros(size(L11bar,1), size(L33bar, 2));
+            L31bar      L33bar];
+        
+Aa(:, idx_remove)=[];
+L_correct = chol(Aa'*Aa,'lower');
+assert(norm(L_updated-L_correct)<1e-10);
 %% First test
 clear;
 
@@ -9,7 +31,6 @@ m = 7;
 for r=1:100,
     A = randn(150,m);                 % random rectangular matrix
     L = chol(A'*A,'lower');           % cholesky of original matrix
-    
     
     for idx = 1:m,
         % remove just one column at a time
@@ -63,7 +84,7 @@ clear
 for r=1:100,
     A = randn(150,12);
     L = chol(A'*A,'lower');
-    cols_to_remove = [1 3 5 10];
+    cols_to_remove = [5 3 10 1];
     cols_to_remove = sort(cols_to_remove);
     sd = setdiff((1:12), cols_to_remove);
     Anew = A(:, sd);

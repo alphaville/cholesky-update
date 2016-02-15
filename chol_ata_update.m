@@ -78,6 +78,7 @@ out.flops = out.flops_add + out.flops_remove;
 out.full_chol_flops = length(alpha_)/3 + size(A,1)^2*(2*length(alpha_)-1);
 
 %% Remove columns
+t0 = cputime;
 out.removals = length(ikill);
 if ~isempty( ikill),
     [L11bar, L31bar, L33bar] = chol_ata_remove_col(L, ikill');
@@ -93,7 +94,7 @@ j = length(idx_new);
 
 L_ = [L_ zeros(j, n_final-j);
     zeros(n_final-j, n_final)];
-
+t1 = cputime;
 % At this point L_ is a lower triangular matrix which factorizes:
 % A(:, idx_new)'*A(:, idx_new). See test_chol_ata_update.m (first block)
 
@@ -117,5 +118,10 @@ end
 
 m = length(idx_new);
 L_ = L_(1:m, 1:m);
+t2 = cputime;
 
-out.flag = flag;
+
+% Runtimes
+out.time.remove = t1-t0;
+out.time.add = t2-t1;
+out.time.total = t2-t0;
