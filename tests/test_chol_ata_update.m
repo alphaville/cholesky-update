@@ -111,3 +111,33 @@ for m = 40:5:50, % number of rows
         end
     end
 end
+
+
+%% Solve linear system
+% Solve a linear system using the update Cholesky
+
+m = 30;
+n = 5000;
+A = randn(m,n);
+alpha  = randperm(n, m-10);
+L = chol(A(:, alpha)'*A(:, alpha),'lower');
+
+% alpha_ : excluding 15 columns, adding 4 new, shuffling
+alpha_  = alpha(randperm(length(alpha))); 
+alpha_  = alpha_(1:end-15);
+alpha_c = setdiff(1:n, alpha_);
+alpha_c = alpha_c(randperm(length(alpha_c)));
+alpha_ = [alpha_ alpha_c(1:4)];
+
+
+[L_, idx_new, out] = chol_ata_update(A, L, alpha, alpha_);
+
+Z = A(:, idx_new)'*A(:, idx_new);
+
+assert(norm(L_*L_' - Z, Inf)<1e-10);
+
+
+% We need to solve the system A(:, alpha_)'*A(:, alpha_) x = b
+b = rand(length(alpha_),1);
+
+alpha_

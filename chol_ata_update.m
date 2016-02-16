@@ -41,6 +41,15 @@ function [L_, idx_new, out] = chol_ata_update(A, L, alpha, alpha_)
 narginchk(4,4)
 nargoutchk(2,3)
 
+if size(alpha,2)==1,
+    alpha = alpha';
+end
+
+if size(alpha_,2)==1,
+    alpha_ = alpha_';
+end
+
+
 dbg = true;
 
 if dbg,
@@ -59,7 +68,7 @@ out.rejected_cols = 0;
 %% Estimate flops for removals and additions
 out.flops_remove = 0;
 s = length(alpha);
-for i=length(ikill):-1:1,    
+for i=length(ikill):-1:1,
     out.flops_remove = out.flops_remove + 2 * (s - ikill(i))^2 + 4 * (s - ikill(i));
     s = s - 1;
 end
@@ -83,7 +92,7 @@ out.removals = length(ikill);
 if ~isempty( ikill),
     [L11bar, L31bar, L33bar] = chol_ata_remove_col(L, ikill');
     L_ = [ L11bar   zeros(size(L11bar,1), size(L33bar,2))
-           L31bar   L33bar ]; 
+        L31bar   L33bar ];
 else
     L_ = L;
 end
