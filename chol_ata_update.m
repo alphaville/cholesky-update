@@ -50,13 +50,12 @@ if size(alpha_,2)==1,
 end
 
 
-dbg = true;
+dbg = false;
 
 if dbg,
     assert( norm(A(:,alpha)'*A(:,alpha) - L*L', Inf)<1e-7, 'Given L is wrong');
 end
 
-flag = 0;
 
 idx_to_add = setdiff(alpha_, alpha);
 [~, ikill] = setdiff(alpha, alpha_);
@@ -109,22 +108,24 @@ t1 = cputime;
 
 %% Add columns
 out.additions = length(idx_to_add);
+A_ = [A_ A(:, idx_to_add)];
+idx_new = [idx_new zeros(1, length(idx_to_add))];
 for i = 1:length(idx_to_add),
     % for all columns to be added
     col = A(:, idx_to_add(i));
-    [l1, l2, flag] = chol_ata_append_col(L_(1:j, 1:j), A_, col);
-    if flag==0,
+    [l1, l2, flag] = chol_ata_append_col(L_(1:j, 1:j), A_(:, 1:j), col);
+    if flag == 0,
         % If column can be added without making the matrix singular, add it
         % else proceed.
-        idx_new = [idx_new idx_to_add(i)];
         L_(j+1, 1:j+1) = [l1', l2];
         j = j + 1;
-        A_ = [A_ col];
+        idx_new(j) = idx_to_add(i);
     else
         out.rejected_cols = out.rejected_cols + 1;
     end
 end
 
+idx_new=idx_new(1:j);
 m = length(idx_new);
 L_ = L_(1:m, 1:m);
 t2 = cputime;

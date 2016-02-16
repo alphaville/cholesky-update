@@ -17,7 +17,6 @@ for r=1:50,
     alpha_ = alpha(randperm(length(alpha)));
     
     % Check with various lengths of removed columns (remove 1 up to all)
-    j=3;
     for j=0:length(alpha)
         [L_, idx_new, out] = chol_ata_update(A, L, alpha, alpha_(1:end-j));
         
@@ -85,7 +84,7 @@ end
 clear;
 
 for m = 40:5:50, % number of rows
-    for n = 2000:250:3000; % number of columns
+    for n = 2000:500:3000; % number of columns
         A = randn(m,n);
         
         % Select some columns of A (original set: alpha) and factorize
@@ -94,16 +93,18 @@ for m = 40:5:50, % number of rows
         L = chol(A(:, alpha)'*A(:, alpha),'lower');
         
         % Remove some of the indices in alpha:
-        for n_remove = 0:5:30,
-            for n_add = 0:10,
+        for n_remove = 0:6:30,
+            for n_add = 0:2:10,
                 alpha_  = alpha(randperm(length(alpha)));     % reorder alpha
                 alpha_  = alpha_(1:end-n_remove);             % take a subset of alpha (shuffled)
                 alpha_c = setdiff(1:n, alpha_);               % find the indices not in alpha_
                 alpha_c = alpha_c(randperm(length(alpha_c))); % shuffle alpha_c
-                alpha_ = [alpha_ alpha_c(1:n_add)];           % resulting set alpha_
+                alpha_ = [alpha_ alpha_c(1:n_add)];           % resulting set alpha_                                
                 
                 % Update the factorization
                 [L_, idx_new, out] = chol_ata_update(A, L, alpha, alpha_);
+                
+                assert(out.removals==length(setdiff(alpha, alpha_)), 'not all removed');
                 
                 % Check whether the result is correct
                 assert(norm(L_*L_' - A(:, idx_new)'*A(:, idx_new), Inf)<1e-10);
@@ -113,31 +114,53 @@ for m = 40:5:50, % number of rows
 end
 
 
-%% Solve linear system
-% Solve a linear system using the update Cholesky
-
-m = 30;
-n = 5000;
+%% Very simple test
+clc
+m = 60;
+n = 3000;
 A = randn(m,n);
-alpha  = randperm(n, m-10);
+alpha  = randperm(n, m);
+
 L = chol(A(:, alpha)'*A(:, alpha),'lower');
 
-% alpha_ : excluding 15 columns, adding 4 new, shuffling
-alpha_  = alpha(randperm(length(alpha))); 
+alpha_  = alpha(randperm(length(alpha)));
 alpha_  = alpha_(1:end-15);
 alpha_c = setdiff(1:n, alpha_);
 alpha_c = alpha_c(randperm(length(alpha_c)));
 alpha_ = [alpha_ alpha_c(1:4)];
 
-
 [L_, idx_new, out] = chol_ata_update(A, L, alpha, alpha_);
-
-Z = A(:, idx_new)'*A(:, idx_new);
-
-assert(norm(L_*L_' - Z, Inf)<1e-10);
+assert(norm(L_*L_' - A(:, idx_new)'*A(:, idx_new), Inf)<1e-10);
 
 
-% We need to solve the system A(:, alpha_)'*A(:, alpha_) x = b
-b = rand(length(alpha_),1);
+%% Solve linear system
+% Solve a linear system using the update Cholesky
 
-alpha_
+m = 30;
+n = 5000;
+for r=1:100,
+    A = randn(m,n);
+    alpha  = randperm(n, m-10);
+    L = chol(A(:, alpha)'*A(:, alpha),'lower');
+    
+    % alpha_ : excluding 15 columns, adding 4 new, shuffling
+    alpha_  = alpha(randperm(length(alpha)));
+    alpha_  = alpha_(1:end-15);
+    alpha_c = setdiff(1:n, alpha_);
+    alpha_c = alpha_c(randperm(length(alpha_c)));
+    alpha_ = [alpha_ alpha_c(1:4)];
+    
+    [L_, idx_new, out] = chol_ata_update(A, L, alpha, alpha_);
+    
+    Z = A(:, idx_new)'*A(:, idx_new);
+    
+    assert(norm(L_*L_' - Z, Inf)<1e-10);
+    
+    % We need to solve the system A(:, alpha_)'*A(:, alpha_) x = b,  that is
+    % Z*x = b. This system is invariant to permutations of alpha_.
+    b = rand(length(alpha_),1);
+    
+    x0 = Z\b;
+    x1 = L_'\(L_\b);
+    assert(norm(x0-x1, Inf)<1e-10);
+end
